@@ -1,314 +1,145 @@
-let canvas = document.getElementById("myCanvas");
-let konten = canvas.getContext("2d");
+aturCanvas();
+setJudul("Virtual Lab");
+hapusLayar("#b3cfe5");
 
-// Gambar background
-let background = new Image();
-background.src = './assets/bg1.jpg'; // Ganti dengan path gambar Anda
+//listener untuk membaca event mouse
+canvas.onmousedown = mouseDown;
+canvas.onmouseup = mouseUp;
 
-background.onload = function() {
-    // konten.drawImage(background, 0, 0, canvas.width, canvas.height);
-    drawContent(); // Gambar konten setelah background
-};
+var gelasPiala1 = {tipe:"beaker", x:200, y:120, l:80, t:100, rad:8, vol:0, warnaGaris:"#ffffff", warnaIsi:"#2495ff"}
+var api1 = {x:200, y:300, v:1, rad:20, max:40, warna:"red", blok:gelasPiala1, dist:100};
+var burner1 = {x:270, y:400, l:60, t:40, warnaGaris:"#fff", warnaIsi:"#ff2429"}
+var termo1 = {x:100, y:100, l:15, t:80, min:0, max:100, val:20, offset: 10, warnaGaris: "#f8f8f8", warnaIsi: "red",label:["0", "50", "100"], showVal:true, desimal:0}
 
-function drawContent() {
-    var gelasPiala1 = {
-        tipe: "beaker",
-        x: 0.5 * canvas.width - 40,
-        y: 0.8 * canvas.height - 150,
-        l: 80,
-        t: 100,
-        rad: 8,
-        vol: 80,
-        warnaGaris: "#ffffff",
-        warnaIsi: "#2495ff"
-    };
+var sliderVolume = {nama: "volumeSlider", x: 0.5 * canvas.width - 130, y: 500, p: 200, minS: 0, maxS: 500, valS: gelasPiala1.vol, tipe: "H", label: "mL"};
 
-    function hexToRGBA(hex, alp) {
-        var c;
-        if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
-            c = hex.substring(1).split('');
-            if (c.length == 3) {
-                c = [c[0], c[0], c[1], c[1], c[2], c[2]];
-            }
-            c = '0x' + c.join('');
-            return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + alp + ')';
-        }
-        throw new Error('Kode hex warna salah, cek ulang!!');
-    }
+var apiAktif = 0;
+var simAktif = 1;
+var suhuAir = 20;
+var menguap = false;
 
-    function garis(x1, y1, x2, y2, tebal, warna) {
-        konten.beginPath();
-        konten.moveTo(x1, y1);
-        konten.lineTo(x2, y2);
-        konten.lineWidth = tebal;
-        konten.strokeStyle = warna;
-        konten.stroke();
-    }
+var dragTermo = {nama:"termo", x:termo1.x-25, y:termo1.y, w:termo1.l+50, h:termo1.t+40, limit:"xy"};
+var dragBurner = {nama:"burner", x:burner1.x, y:burner1.y, w:burner1.l, h:burner1.t, limit:"x"};
+var dragGelasPiala1 = {nama: "gelasPiala1", x: gelasPiala1.x, y: gelasPiala1.y, w: gelasPiala1.l, h: gelasPiala1.t, limit: "xy"};
 
-    function tabung(data) {
-        if (data.tipe == "beaker") {
-            // isi
-            var dy = data.y + data.t;
-            var h = data.vol / 100 * (data.t);
-            if (data.vol > 0) {
-                konten.beginPath();
-                konten.fillStyle = hexToRGBA(data.warnaIsi, 0.7);
-                konten.moveTo(data.x + 4, dy - h);
-                konten.lineTo(data.x + data.l - 4, dy - h);
-                konten.lineTo(data.x + data.l - 4, data.y + data.t - data.rad);
-                konten.arc(data.x + data.l - data.rad, data.y + data.t - data.rad, data.rad - 4, 0, 0.5 * Math.PI);
-                konten.lineTo(data.x + data.rad + 4, dy - 4);
-                konten.arc(data.x + data.rad, data.y + data.t - data.rad, data.rad - 4, 0.5 * Math.PI, Math.PI);
-                konten.lineTo(data.x + 4, dy - h);
-                konten.fill();
-            }
-            // garis gelas
-            konten.beginPath();
-            konten.lineWidth = 2;
-            konten.strokeStyle = hexToRGBA(data.warnaGaris, 0.8);
-            konten.arc(data.x - data.rad, data.y + data.rad, data.rad, 1.5 * Math.PI, 0);
-            konten.moveTo(data.x - data.rad, data.y);
-            konten.lineTo(data.x + data.l + data.rad, data.y);
-            konten.stroke();
-            konten.beginPath();
-            konten.arc(data.x + data.l + data.rad, data.y + data.rad, data.rad, Math.PI, Math.PI * 1.5);
-            konten.moveTo(data.x + data.l, data.y + data.rad);
-            konten.lineTo(data.x + data.l, data.y + data.t - data.rad);
-            konten.arc(data.x + data.l - data.rad, data.y + data.t - data.rad, data.rad, 0, 0.5 * Math.PI);
-            konten.lineTo(data.x + data.rad, data.y + data.t);
-            konten.arc(data.x + data.rad, data.y + data.t - data.rad, data.rad, 0.5 * Math.PI, Math.PI);
-            konten.lineTo(data.x, data.y + data.rad);
-            konten.stroke();
+function setSimulasi() {
+	hapusLayar();
+	
+	//menampilkan teks
+	teks("Perpindahan Kalor", 0.5*(canvas.width), 40, 'bold 20pt Calibri', 'black', 'center');
+	teks("Drag Burner dan termometer untuk mengetahui perubahan suhu", 0.5*(canvas.width), 60, "12pt Calibri", "#000", "center");
+	teks("Volume Cairan", 0.5*(canvas.width), 0.8 * canvas.height, "12pt Calibri", "#000", "center");
+	
+	//tombol control
+	if (apiAktif == 1){
+		tombol("Matikan/id=api", 0.5*(canvas.width) - 40,560, 80, 30, "bold 11pt Calibri", "white", "black", "gray", "r");
+	}else{
+		tombol("Nyalakan/id=api", 0.5*(canvas.width) - 40,560, 80, 30, "bold 11pt Calibri", "white", "black", "gray", "r");
+	}
 
-            // skala
-            var skala = (data.t) / 10;
-            var skalaW = data.l / 6;
-            if (skalaW < 4) skalaW = 4;
-            for (var i = 0; i <= 9; i++) {
-                if (i > 0) garis(data.x + 4, data.y + data.t - i * skala, data.x + 4 + skalaW, data.y + data.t - i * skala, 1, data.warnaGaris);
-            }
-        }
-    }
+	// tampilkan slider volume
+    slider(sliderVolume);
 
-    function drawRoundedRect(konten, x, y, width, height, radius) {
-        konten.beginPath();
-        konten.moveTo(x + radius, y);
-        konten.lineTo(x + width - radius, y);
-        konten.quadraticCurveTo(x + width, y, x + width, y + radius);
-        konten.lineTo(x + width, y + height - radius);
-        konten.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-        konten.lineTo(x + radius, y + height);
-        konten.quadraticCurveTo(x, y + height, x, y + height - radius);
-        konten.lineTo(x, y + radius);
-        konten.quadraticCurveTo(x, y, x + radius, y);
-        konten.closePath();
-    }
+	//lantai
+	garis(0,burner1.y+burner1.t, canvas.width, burner1.y+burner1.t);
+	
+	//simulasi	
+	burner(burner1);
+	tabung(gelasPiala1);
+	if (apiAktif == 1) setApi(burner1, api1);		
+	termometer(termo1);
 
-    function heater(x, y, l, t, tebal, warna, radius) {
-        drawRoundedRect(konten, x, y, l, t, radius);
-        konten.lineWidth = tebal;
-        konten.strokeStyle = warna;
-        konten.fillStyle = 'white';
-        konten.stroke();
-        konten.fill();
-
-        // tombol
-        konten.beginPath();
-        konten.strokeStyle = 'black';
-        konten.lineWidth = 4;
-        konten.fillStyle = 'red';
-        konten.arc(0.5 * canvas.width + 75, 0.8 * canvas.height - 24, 7, 0, 2 * Math.PI);
-        konten.stroke();
-        konten.fill();
-
-        //indikator suhu
-        kotak(0.5 * canvas.width - 30, 0.8 * canvas.height - 34, 30, 20, 2, 'black', 'white');
-        teks("20", 0.5 * canvas.width - 15, 0.8 * canvas.height - 20, "11pt Calibri", "black", "center");
-        
-        //tombol suhu
-        segitiga(0.5 * canvas.width + 10, 0.8 * canvas.height - 31, 15, 15, 2, 90, 'black', 'black');
-        segitiga(0.5 * canvas.width -55, 0.8 * canvas.height - 31, 15, 15, 2, 270, 'black', 'black');
-    }
-
-    function termometer(data) {
-        var x = data.x, y = data.y, l = data.l, t = data.t, min = data.min, max = data.max, val = data.val, off = data.offset;
-        var l2 = l / 2;
-        var konten = data.context;
-    
-        // Menggambar bagian atas termometer
-        konten.beginPath();
-        konten.lineWidth = 2;
-        konten.strokeStyle = data.warnaGaris;
-        konten.arc(x + l2, y + l2, l2, Math.PI, Math.PI * 2);
-        konten.stroke();
-    
-        // Menggambar bagian bawah termometer
-        konten.beginPath();
-        konten.arc(x + l2, y + 1.2 * l2 + t + off * 2, 1.5 * l2, 1.7 * Math.PI, Math.PI * 3.3);
-        konten.stroke();
-    
-        // Menggambar garis vertikal
-        garis(x, y + l2, x, y + t + off * 2, 2, data.warnaGaris);
-        garis(x + l, y + l2, x + l, y + t + off * 2, 2, data.warnaGaris);
-    
-        // Mengisi bagian bawah termometer
-        lingkaran(x + l2, y + 1.2 * l2 + t + off * 2, 1.5 * l2 - 3, 1, data.warnaIsi, data.warnaIsi);
-        data.ujungX = x + l2;
-        data.ujungY = y + 1.2 * l2 + t + off * 2;
-    
-        if (val < min) val = min;
-        if (val > max) val = max;
-        var fillH = ((val - min) / (max - min)) * t;
-    
-        // Mengisi bagian termometer sesuai nilai suhu
-        kotak(x + 3, y + t + off * 2, l - 6, -fillH, 1, data.warnaIsi, data.warnaIsi);
-        kotak(x + 3, y + t + off * 2, l - 6, l, 1, data.warnaIsi, data.warnaIsi);
-    
-        // Menambahkan skala
-        var skala = t / 10;
-        for (var i = 0; i <= 10; i++) {
-            garis(x, y + t + off * 2 - i * skala, x + l / 3, y + t + off * 2 - i * skala, 1, data.warnaGaris);
-        }
-    
-        // Menambahkan label teks untuk skala
-        skala = t / (data.label.length - 1);
-        for (i = 0; i < data.label.length; i++) {
-            teks(data.label[i], x - 5, y + t + off * 2 - i * skala + 5, "10pt Calibri", data.warnaGaris, "right");
-        }
-    
-        // Menampilkan nilai suhu saat ini
-        if (data.showVal != null && data.showVal) {
-            if (data.val > max) data.val = max;
-            teks(data.val.toFixed(data.desimal) + "⁰", x + l / 2, y - 10, "12pt Calibri", data.warnaGaris, "center");
-        }
-    }
-    
-    // Fungsi pendukung
-    function garis(x1, y1, x2, y2, tebal, warna) {
-        konten.beginPath();
-        konten.moveTo(x1, y1);
-        konten.lineTo(x2, y2);
-        konten.lineWidth = tebal;
-        konten.strokeStyle = warna;
-        konten.stroke();
-    }
-    
-    function lingkaran(x, y, rad, tebal, warnaGaris, warnaIsi) {
-        konten.beginPath();
-        konten.arc(x, y, rad, 0, 2 * Math.PI);
-        konten.lineWidth = tebal;
-        konten.strokeStyle = warnaGaris;
-        konten.fillStyle = warnaIsi;
-        konten.fill();
-        konten.stroke();
-    }
-    
-    function kotak(x, y, lebar, tinggi, tebal, warnaGaris, warnaIsi) {
-        konten.beginPath();
-        konten.rect(x, y, lebar, tinggi);
-        konten.lineWidth = tebal;
-        konten.strokeStyle = warnaGaris;
-        konten.fillStyle = warnaIsi;
-        konten.fill();
-        konten.stroke();
-    }
-    
-    function teks(teks, x, y, font, warna, align) {
-        konten.font = font;
-        konten.fillStyle = warna;
-        konten.textAlign = align;
-        konten.fillText(teks, x, y);
-    }
-
-    let termometerCelup = {
-        x: 0.5 * canvas.width -5,
-        y: 0.8 * canvas.height - 215,
-        l: 10,
-        t: 75,
-        min: 0,
-        max: 100,
-        val: 20,
-        offset: 10,
-        warnaGaris: "#ffffff",
-        warnaIsi: "red",
-        label: ["0", "50", "100"],
-        showVal: true,
-        desimal: 0,
-        context: konten // pastikan ini mengarah ke konteks canvas yang benar
-    };
-    
-    let termometerDetail = {
-        x: 50,
-        y: 50,
-        l: 20,
-        t: 150,
-        min: 0,
-        max: 100,
-        val: 20,
-        offset: 10,
-        warnaGaris: "#ffffff",
-        warnaIsi: "red",
-        label: ["0", "50", "100"],
-        showVal: true,
-        desimal: 0,
-        context: konten // pastikan ini mengarah ke konteks canvas yang benar
-    };
-    
-    function segitiga(x, y, lebar, tinggi, tebal, rotation, warnaGaris, warnaIsi) {
-        let konten = canvas.getContext("2d"); // Asumsikan `canvas` adalah elemen canvas di HTML
-    
-        // Simpan state canvas
-        konten.save();
-        
-        // Pindahkan titik referensi ke pusat segitiga untuk rotasi yang mudah
-        konten.translate(x + lebar / 2, y + tinggi / 2);
-        konten.rotate(rotation * Math.PI / 180);
-        
-        // Pindahkan kembali referensi ke titik awal segitiga setelah rotasi
-        konten.translate(-(x + lebar / 2), -(y + tinggi / 2));
-        
-        // Gambar segitiga tanpa sudut melengkung
-        konten.beginPath();
-        
-        // Titik atas segitiga
-        konten.moveTo(x + lebar / 2, y);
-    
-        // Garis kanan
-        konten.lineTo(x + lebar, y + tinggi);
-        
-        // Garis bawah
-        konten.lineTo(x, y + tinggi);
-        
-        // Garis kiri kembali ke titik awal
-        konten.lineTo(x + lebar / 2, y);
-        
-        // Tutup jalur untuk menyelesaikan segitiga
-        konten.closePath();
-        
-        // Set properti garis dan isi
-        konten.lineWidth = tebal;
-        konten.strokeStyle = warnaGaris;
-        konten.fillStyle = warnaIsi;
-        
-        // Isi segitiga
-        konten.fill();
-        
-        // Gambar garis segitiga
-        konten.stroke();
-        
-        // Kembalikan state canvas ke kondisi sebelum `save()`
-        konten.restore();
-    }
-
-
-
-
-
-
-
-    termometer(termometerDetail)
-    termometer(termometerCelup);
-    tabung(gelasPiala1);
-    garis(0, 0.8 * canvas.height, canvas.width, 0.8 * canvas.height, 2, 'black');
-    heater(0.5 * canvas.width - 100, 0.8 * canvas.height - 50, 200, 50, 5, 'black', 20);    
+	//perhitungan api berdasarkan jarak
+	var jarakTermoApi = jarak(termo1.x, termo1.y+termo1.t, api1.x, api1.y);
+	var jarakBeakerApi = jarak(gelasPiala1.x+gelasPiala1.l/2, gelasPiala1.y+gelasPiala1.t, api1.x, api1.y);
+	if (apiAktif == 1){		
+		//suhu termometer naik 
+		if (jarakTermoApi < api1.dist){
+			termo1.val+= (api1.dist - jarakTermoApi)/100; 
+		}
+		//suhu air naik
+		if (jarakBeakerApi < api1.dist && suhuAir < 100){
+			suhuAir+= (api1.dist - jarakBeakerApi)/1000; 
+		}	
+	}
+	//termometer masuk ke air
+	if (cekHit(termo1.ujungX, termo1.ujungY, gelasPiala1, "vol")){
+		termo1.val += (suhuAir - termo1.val)/100;
+	}
+	//suhu termometer turun ke suhu normal (misal 20C)
+	if (jarakTermoApi > api1.dist || apiAktif == 0){
+		if (termo1.val > 20) termo1.val -= 0.025;
+	}
+	//suhu air turun
+	if (jarakBeakerApi > api1.dist || apiAktif == 0) {
+		if (suhuAir > 20) suhuAir -= 0.005;
+		if (suhuAir < 50) menguap = false;
+	}
+	//titik didih air
+	if (suhuAir >= 100)	{
+		gelembung(gelasPiala1);
+		menguap = true;
+	}
+	//air menguap
+	if (suhuAir >= 100 || menguap ) uap(gelasPiala1);
+	
 }
+
+function jalankanSimulasi() {
+	setSimulasi();
+	if (simAktif == 1) {
+		timer = window.setTimeout(jalankanSimulasi, 10);
+	}
+}
+
+function mouseDown(event){
+	canvas.onmousemove = mouseDrag;
+	startDrag(mouseDrag);
+}
+
+function mouseDrag(event){
+    // prosedur mengecek objek drag
+    var drag = cekDrag(event);
+    if (drag != null){
+        if (drag.nama == "termo"){
+            termo1.x = dragTermo.x+dragTermo.w/2;
+            termo1.y = dragTermo.y;
+        }
+        if (drag.nama == "burner"){
+            burner1.x = dragBurner.x;
+            // burner1.y = dragBurner.y;
+        }
+        if (drag.nama == "gelasPiala1"){
+            gelasPiala1.x = dragGelasPiala1.x;
+            gelasPiala1.y = dragGelasPiala1.y;
+        }
+    }
+
+	// cek slider
+	var activeSlider = cekSlider(event);
+    if (activeSlider != null && activeSlider.nama == "volumeSlider") {
+        sliderVolume.valS = activeSlider.valS;
+		(sliderVolume.volS < 5) ? gelasPiala1.vol = 0 : gelasPiala1.vol = Number(sliderVolume.valS) / 5;
+	}
+}
+
+
+function mouseUp(event){
+	canvas.onmousemove = null;
+	var tombolAktif = cekTombol(event);
+	if (tombolAktif != ""){
+		if (tombolAktif == "api"){
+			if (apiAktif == 1) {
+				apiAktif = 0;
+			}else{
+				apiAktif = 1;
+			}
+		}
+	}
+}
+
+setDrag(dragTermo);
+setDrag(dragBurner);
+setDrag(dragGelasPiala1);
+setDrag(sliderVolume);
+jalankanSimulasi();
