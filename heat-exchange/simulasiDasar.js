@@ -1746,3 +1746,43 @@ function lensaCekung(x1, y1, radius, lensRadius, f){
 	konten.stroke();
 	konten.fill(); 
 }
+
+function kakiTiga(data) {
+    // Gambar plat atas
+    konten.beginPath();
+    konten.moveTo(data.x - 40, data.y);
+	konten.lineTo(data.x + 40, data.y);
+	konten.strokeStyle = data.warna;
+	konten.lineWidth = 5;
+    konten.fill();
+	konten.stroke();
+
+    // Gambar kaki-kaki
+    var kaki1 = {x: data.x - data.l / 2, y: data.y + data.t, rad: data.rad / 4};
+    var kaki2 = {x: data.x + data.l / 2, y: data.y + data.t, rad: data.rad / 4};
+    var kakiTengah = {x: data.x, y: data.y + data.t, rad: data.rad / 4};
+
+    // Gambar kaki kiri
+    konten.beginPath();
+    konten.moveTo(data.x - data.rad, data.y);
+    konten.lineTo(kaki1.x, kaki1.y);
+    konten.strokeStyle = data.warna;
+    konten.lineWidth = 5;
+    konten.stroke();
+
+    // Gambar kaki kanan
+    konten.beginPath();
+    konten.moveTo(data.x + data.rad, data.y);
+    konten.lineTo(kaki2.x, kaki2.y);
+    konten.strokeStyle = data.warna;
+    konten.lineWidth = 5;
+    konten.stroke();
+
+    // Gambar kaki tengah
+    konten.beginPath();
+    konten.moveTo(data.x, data.y);
+    konten.lineTo(kakiTengah.x, kakiTengah.y);
+    konten.strokeStyle = data.warna;
+    konten.lineWidth = 5;
+    konten.stroke();
+}

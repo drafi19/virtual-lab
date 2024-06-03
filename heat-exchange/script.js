@@ -10,6 +10,7 @@ var gelasPiala1 = {tipe:"beaker", x:200, y:120, l:80, t:100, rad:8, vol:0, warna
 var api1 = {x:200, y:300, v:1, rad:20, max:40, warna:"red", blok:gelasPiala1, dist:100};
 var burner1 = {x:270, y:400, l:60, t:40, warnaGaris:"#fff", warnaIsi:"#ff2429"}
 var termo1 = {x:100, y:100, l:15, t:80, min:0, max:100, val:20, offset: 10, warnaGaris: "#f8f8f8", warnaIsi: "red",label:["0", "50", "100"], showVal:true, desimal:0}
+var dataKakiTiga = {x: 500, y: 0.6 * canvas.height, l: 100, t: 80, rad: 20, warna: 'black'}
 
 var sliderVolume = {nama: "volumeSlider", x: 0.5 * canvas.width - 130, y: 500, p: 200, minS: 0, maxS: 500, valS: gelasPiala1.vol, tipe: "H", label: "mL"};
 
@@ -41,9 +42,10 @@ function setSimulasi() {
     slider(sliderVolume);
 
 	//lantai
-	garis(0,burner1.y+burner1.t, canvas.width, burner1.y+burner1.t);
+	garis(0,burner1.y+burner1.t + 2, canvas.width, burner1.y+burner1.t);
 	
 	//simulasi	
+	kakiTiga(dataKakiTiga);
 	burner(burner1);
 	tabung(gelasPiala1);
 	if (apiAktif == 1) setApi(burner1, api1);		
@@ -102,16 +104,31 @@ function mouseDrag(event){
     var drag = cekDrag(event);
     if (drag != null){
         if (drag.nama == "termo"){
-            termo1.x = dragTermo.x+dragTermo.w/2;
-            termo1.y = dragTermo.y;
+			if(dragTermo.y + dragTermo.h < 440){
+				termo1.x = dragTermo.x+dragTermo.w/2;
+				termo1.y = dragTermo.y;
+			} else {
+				dragTermo.x = termo1.x - dragTermo.w/2;
+				dragTermo.y = termo1.y;
+			}
         }
         if (drag.nama == "burner"){
             burner1.x = dragBurner.x;
             // burner1.y = dragBurner.y;
         }
-        if (drag.nama == "gelasPiala1"){
-            gelasPiala1.x = dragGelasPiala1.x;
-            gelasPiala1.y = dragGelasPiala1.y;
+        if (drag.nama == "gelasPiala1") {
+            // Pembatasan gerakan gelasPiala1 agar tidak melewati bagian atas dari kakiTiga1
+            if ((dragGelasPiala1.y + dragGelasPiala1.h < dataKakiTiga.y - 2.5
+				|| (dragGelasPiala1.x + dragGelasPiala1.w < dataKakiTiga.x - 50 || dragGelasPiala1.x > dataKakiTiga.x + 50)) 
+				&& dragGelasPiala1.y + dragGelasPiala1.h < 440
+			) {
+                gelasPiala1.x = dragGelasPiala1.x;
+                gelasPiala1.y = dragGelasPiala1.y;
+            } else {
+                // Kembalikan ke posisi semula jika melewati batas
+                dragGelasPiala1.x = gelasPiala1.x;
+                dragGelasPiala1.y = gelasPiala1.y;
+            }
         }
     }
 
